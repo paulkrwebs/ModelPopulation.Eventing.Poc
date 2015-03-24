@@ -63,13 +63,16 @@ namespace ModelPopulation.Eventing
 
         private static bool IsGenericsMatch(List<HandlerInfo> handlersToRegister, HandlerInfo eventInfo, HandlerInfo handler)
         {
+            if (!handler.IsGenericType)
+                return false;
+
             // Match types that are generic and not constructed
             if (IsGenericClassMatched(eventInfo, handler))
                 return true;
 
             // Match types that are not a genric type
             // Therefore the interface must have been constructed so we want to check the generic parameters and not the parameter constrains
-            if (IsGenericInterfaceOnClassMatched(eventInfo, handler))
+            if (IsConstructedGenericInterfaceOnClassMatched(eventInfo, handler))
                 return true;
 
             return false;
@@ -96,15 +99,32 @@ namespace ModelPopulation.Eventing
             if (!IsValidGenericClassToCompare(eventInfo, handler))
                 return false;
 
-            for (int i = 0; i < handler.GenericParameterInfo.Count(); i++)
+            for (int counter = 0; counter < handler.GenericParameterInfo.Count(); counter++)
             {
                 // Are any of the constrains on the generic parameters assignable to the event type e.g the "where constrainsts"
-                if (handler.GenericParameterInfo[i].Contraints
-                    .Any(hc => hc.IsAssignableFrom(eventInfo.GenericParameterInfo[i].Type)))
+                if (handler.GenericParameterInfo[counter].Contraints
+                    .Any(hc => hc.IsAssignableFrom(eventInfo.GenericParameterInfo[counter].Type))
+                    && IsInterfaceMatched(eventInfo, handler))
                     continue;
 
                 return false;
             }
+
+            return true;
+        }
+
+        private static bool IsInterfaceMatched(HandlerInfo eventInfo, HandlerInfo handler)
+        {
+            if (!eventInfo.Type.IsInterface)
+                return true;
+
+            if (!handler.Interfaces.Any())
+                return false;
+
+            if (!handler.Interfaces.Any(i => i.IsGenericType && i.Type.GetGenericTypeDefinition() == eventInfo.Type.GetGenericTypeDefinition()))
+                return false;
+
+            // if the interface is constructed I need to do an exact match
 
             return true;
         }
@@ -123,10 +143,13 @@ namespace ModelPopulation.Eventing
             return true;
         }
 
-        private static bool IsGenericInterfaceOnClassMatched(HandlerInfo eventInfo, HandlerInfo handler)
+        private static bool IsConstructedGenericInterfaceOnClassMatched(HandlerInfo eventInfo, HandlerInfo handler)
         {
             foreach (InterfaceInfo interfaceInfo in handler.Interfaces)
             {
+                if (!interfaceInfo.IsGenericType)
+                    return false;
+
                 for (int i = 0; i < interfaceInfo.GenericParameterInfo.Count(); i++)
                 {
                     // Are the generic parameters an exact match for the interface parameters

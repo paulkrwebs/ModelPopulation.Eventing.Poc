@@ -56,6 +56,8 @@
     <Compile Include="Class1.cs" />
     <Compile Include="GenericParameterInfo.cs" />
     <Compile Include="HandlerInfo.cs" />
+    <Compile Include="Handlers\BadHandler.cs" />
+    <Compile Include="Handlers\IBadHandler.cs" />
     <Compile Include="Handlers\TechnicalEmployeeHandler.cs" />
     <Compile Include="Handlers\TechnicalArchitectHandler.cs" />
     <Compile Include="InterfaceInfo.cs" />
